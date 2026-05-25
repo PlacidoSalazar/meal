@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Meal Planner">
+<title>🥗 Meal Planner</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f8f9f5; min-height: 100vh; color: #1a1a1a;
+  max-width: 390px; margin: 0 auto;
+}
+
+/* Onboarding screen */
+#onboarding {
+  display: none; position: fixed; inset: 0; background: #f8f9f5;
+  z-index: 300; align-items: center; justify-content: center; padding: 32px 24px;
+}
+#onboarding.show { display: flex; flex-direction: column; }
+.ob-logo { font-size: 56px; margin-bottom: 16px; }
+.ob-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; text-align: center; }
+.ob-sub { font-size: 15px; color: #5f5e5a; text-align: center; line-height: 1.5; margin-bottom: 32px; }
+.ob-card { background: #fff; border-radius: 16px; border: 0.5px solid #e5e5e0; padding: 20px; width: 100%; margin-bottom: 16px; }
+.ob-card-title { font-size: 13px; font-weight: 600; color: #3b6d11; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.ob-card p { font-size: 13px; color: #5f5e5a; line-height: 1.5; }
+.ob-card a { color: #3b6d11; font-weight: 600; }
+.ob-input-wrap { position: relative; margin-top: 10px; }
+.ob-input-wrap input {
+  width: 100%; padding: 12px 44px 12px 14px; border: 0.5px solid #e5e5e0;
+  border-radius: 12px; font-size: 14px; outline: none; background: #f8f9f5; color: #1a1a1a;
+}
+.ob-input-wrap input:focus { border-color: #3b6d11; }
+.ob-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #888780; font-size: 18px; }
+.ob-btn {
+  width: 100%; background: #3b6d11; color: #fff; border: none;
+  border-radius: 14px; padding: 16px; font-size: 16px; font-weight: 600;
+  cursor: pointer; margin-top: 8px;
+}
+.ob-btn:disabled { opacity: 0.4; cursor: default; }
+.ob-skip { margin-top: 14px; font-size: 13px; color: #888780; text-align: center; cursor: pointer; }
+.ob-skip span { color: #3b6d11; font-weight: 600; }
+
+/* Main app */
+#app { display: none; }
+#app.show { display: block; }
+
+.header {
+  background: #fff; padding: 16px 20px 12px;
+  border-bottom: 0.5px solid #e5e5e0; position: sticky; top: 0; z-index: 100;
+}
+.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.header-top h1 { font-size: 18px; font-weight: 600; }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.week-nav { display: flex; align-items: center; gap: 4px; }
+.week-nav button { background: none; border: none; cursor: pointer; color: #5f5e5a; padding: 4px; font-size: 18px; }
+.week-label { font-size: 13px; color: #5f5e5a; font-weight: 500; }
+.settings-btn { background: none; border: none; cursor: pointer; color: #888780; font-size: 20px; padding: 2px; }
+.day-tabs { display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.day-tabs::-webkit-scrollbar { display: none; }
+.day-tab {
+  flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
+  padding: 6px 10px; border-radius: 12px; cursor: pointer; border: none; background: transparent; gap: 2px;
+}
+.day-tab .d-name { font-size: 11px; color: #888780; font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
+.day-tab .d-num { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+.day-tab.active { background: #3b6d11; }
+.day-tab.active .d-name, .day-tab.active .d-num { color: #fff; }
+.day-tab.today .d-num { color: #3b6d11; }
+.day-tab.today.active .d-num { color: #fff; }
+.day-dot { width: 5px; height: 5px; border-radius: 50%; background: #97c459; }
+.day-tab.active .day-dot { background: rgba(255,255,255,0.6); }
+.day-dot-empty { width: 5px; height: 5px; }
+
+.content { padding: 14px 16px 32px; }
+.stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+.stat-card { background: #fff; border-radius: 12px; border: 0.5px solid #e5e5e0; padding: 10px 12px; text-align: center; }
+.stat-card .s-val { font-size: 18px; font-weight: 600; }
+.stat-card .s-lbl { font-size: 11px; color: #888780; margin-top: 2px; }
+.meal-section { margin-bottom: 18px; }
+.meal-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: #5f5e5a; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.refresh-row { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+.refresh-btn { background: none; border: none; font-size: 12px; color: #3b6d11; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 500; }
+.options-scroll { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.options-scroll::-webkit-scrollbar { display: none; }
+.option-card {
+  flex-shrink: 0; width: calc(100% - 28px); scroll-snap-align: start;
+  background: #fff; border-radius: 14px; border: 0.5px solid #e5e5e0; overflow: hidden;
+}
+.option-card.selected { border: 2px solid #3b6d11; }
+.option-inner { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.meal-emoji { font-size: 32px; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; background: #eaf3de; border-radius: 10px; flex-shrink: 0; }
+.meal-info { flex: 1; min-width: 0; }
+.meal-name { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.meal-meta { font-size: 12px; color: #888780; }
+.option-actions { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.icon-btn { background: none; border: none; cursor: pointer; color: #888780; font-size: 18px; padding: 4px; }
+.select-btn { background: #eaf3de; border: none; border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 600; color: #3b6d11; cursor: pointer; white-space: nowrap; }
+.option-card.selected .select-btn { background: #3b6d11; color: #fff; }
+.dots { display: flex; justify-content: center; gap: 5px; margin-top: 7px; }
+.dot-ind { width: 5px; height: 5px; border-radius: 50%; background: #d3d1c7; transition: background 0.2s; }
+.dot-ind.active { background: #3b6d11; }
+.skeleton { background: #fff; border-radius: 14px; border: 0.5px solid #e5e5e0; padding: 14px; display: flex; align-items: center; gap: 12px; }
+.sk-emoji { width: 46px; height: 46px; border-radius: 10px; background: #f1efe8; flex-shrink: 0; animation: pulse 1.2s ease-in-out infinite; }
+.sk-lines { flex: 1; }
+.sk-line { height: 11px; border-radius: 6px; background: #f1efe8; margin-bottom: 8px; animation: pulse 1.2s ease-in-out infinite; }
+.sk-line.w80 { width: 80%; } .sk-line.w50 { width: 50%; margin-bottom: 0; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* Modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: flex-end; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: #fff; border-radius: 24px 24px 0 0; width: 100%; max-width: 390px; padding: 20px 20px 40px; max-height: 82vh; overflow-y: auto; }
+.modal-handle { width: 36px; height: 4px; background: #d3d1c7; border-radius: 2px; margin: 0 auto 16px; }
+.modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.modal-meta { font-size: 13px; color: #888780; margin-bottom: 4px; }
+.modal-section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #3b6d11; margin: 14px 0 8px; }
+.ingr-list { list-style: none; }
+.ingr-list li { font-size: 14px; color: #333; padding: 6px 0; border-bottom: 0.5px solid #f0efe8; display: flex; align-items: center; gap: 8px; }
+.ingr-list li::before { content: ''; width: 6px; height: 6px; background: #97c459; border-radius: 50%; flex-shrink: 0; }
+.steps-list { list-style: none; counter-reset: steps; }
+.steps-list li { font-size: 14px; color: #333; padding: 8px 0 8px 34px; border-bottom: 0.5px solid #f0efe8; position: relative; counter-increment: steps; line-height: 1.5; }
+.steps-list li::before { content: counter(steps); position: absolute; left: 0; top: 8px; width: 22px; height: 22px; background: #eaf3de; color: #3b6d11; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+.close-modal { width: 100%; margin-top: 16px; background: none; border: 0.5px solid #e5e5e0; border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 500; cursor: pointer; color: #5f5e5a; }
+
+/* Settings modal */
+#settingsModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: flex-end; justify-content: center; }
+#settingsModal.open { display: flex; }
+.settings-sheet { background: #fff; border-radius: 24px 24px 0 0; width: 100%; max-width: 390px; padding: 20px 20px 40px; }
+.settings-sheet h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+.settings-row { margin-bottom: 14px; }
+.settings-row label { font-size: 12px; font-weight: 600; color: #5f5e5a; display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.settings-row input {
+  width: 100%; padding: 11px 40px 11px 12px; border: 0.5px solid #e5e5e0;
+  border-radius: 10px; font-size: 14px; outline: none; background: #f8f9f5; color: #1a1a1a;
+}
+.settings-row input:focus { border-color: #3b6d11; }
+.input-wrap { position: relative; }
+.input-wrap .ob-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
+.save-settings { width: 100%; background: #3b6d11; color: #fff; border: none; border-radius: 12px; padding: 13px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 6px; }
+.danger-btn { width: 100%; background: none; border: 0.5px solid #f09595; color: #a32d2d; border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<!-- Onboarding -->
+<div id="onboarding">
+  <div class="ob-logo">🥗</div>
+  <div class="ob-title">Meal Planner</div>
+  <div class="ob-sub">Tu asistente de comida saludable semanal, con sugerencias de IA personalizadas.</div>
+  <div class="ob-card">
+    <div class="ob-card-title"><i class="ti ti-key"></i> API Key de Anthropic</div>
+    <p>Necesitas una key gratuita para generar las sugerencias. Consíguela en <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> (incluye $5 de crédito gratis).</p>
+    <div class="ob-input-wrap">
+      <input type="password" id="obKeyInput" placeholder="sk-ant-...">
+      <button class="ob-toggle" onclick="toggleVis('obKeyInput', this)"><i class="ti ti-eye"></i></button>
+    </div>
+  </div>
+  <button class="ob-btn" id="obBtn" onclick="onboardingSave()">Empezar</button>
+  <div class="ob-skip" onclick="skipOnboarding()">Estoy en <span>Claude.ai</span> — no necesito key</div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <div class="header">
+    <div class="header-top">
+      <h1>🥗 Meal Planner</h1>
+      <div class="header-right">
+        <div class="week-nav">
+          <button onclick="changeWeek(-1)"><i class="ti ti-chevron-left"></i></button>
+          <span class="week-label" id="weekLabel">This week</span>
+          <button onclick="changeWeek(1)"><i class="ti ti-chevron-right"></i></button>
+        </div>
+        <button class="settings-btn" onclick="openSettings()"><i class="ti ti-settings"></i></button>
+      </div>
+    </div>
+    <div class="day-tabs" id="dayTabs"></div>
+  </div>
+
+  <div class="content">
+    <div class="stats-bar" id="statsBar">
+      <div class="stat-card"><div class="s-val">—</div><div class="s-lbl">kcal</div></div>
+      <div class="stat-card"><div class="s-val">—</div><div class="s-lbl">protein</div></div>
+      <div class="stat-card"><div class="s-val">0/3</div><div class="s-lbl">meals</div></div>
+    </div>
+    <div class="meal-section">
+      <div class="meal-label"><i class="ti ti-sun" aria-hidden="true"></i> Breakfast</div>
+      <div id="slot-breakfast"></div>
+    </div>
+    <div class="meal-section">
+      <div class="meal-label"><i class="ti ti-sun-high" aria-hidden="true"></i> Lunch</div>
+      <div id="slot-lunch"></div>
+    </div>
+    <div class="meal-section">
+      <div class="meal-label"><i class="ti ti-moon" aria-hidden="true"></i> Dinner</div>
+      <div id="slot-dinner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Recipe modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="modalTitle"></h2>
+    <p class="modal-meta" id="modalMeta"></p>
+    <p class="modal-section-title">Ingredients</p>
+    <ul class="ingr-list" id="modalIngredients"></ul>
+    <p class="modal-section-title">Instructions</p>
+    <ol class="steps-list" id="modalSteps"></ol>
+    <button class="close-modal" onclick="document.getElementById('modalOverlay').classList.remove('open')">Cerrar</button>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div id="settingsModal" onclick="closeSettings(event)">
+  <div class="settings-sheet">
+    <div class="modal-handle"></div>
+    <h3>Ajustes</h3>
+    <div class="settings-row">
+      <label>API Key</label>
+      <div class="input-wrap">
+        <input type="password" id="settingsKey" placeholder="sk-ant-...">
+        <button class="ob-toggle" onclick="toggleVis('settingsKey', this)"><i class="ti ti-eye"></i></button>
+      </div>
+    </div>
+    <button class="save-settings" onclick="saveSettings()">Guardar</button>
+    <button class="danger-btn" onclick="clearAll()">Borrar todo y empezar de nuevo</button>
+  </div>
+</div>
+
+<script>
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MEALS = ['breakfast','lunch','dinner'];
+const today = new Date();
+let weekOffset = 0;
+let selectedDay = today.getDay();
+const cache = {};
+const selectedOpts = {};
+let apiKey = '';
+
+function getKey(off, day, meal) { return `${off}_${day}_${meal}`; }
+
+function toggleVis(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.innerHTML = show ? '<i class="ti ti-eye-off"></i>' : '<i class="ti ti-eye"></i>';
+}
+
+function onboardingSave() {
+  const k = document.getElementById('obKeyInput').value.trim();
+  if (!k) return;
+  apiKey = k;
+  startApp();
+}
+
+function skipOnboarding() {
+  apiKey = '';
+  startApp();
+}
+
+function startApp() {
+  document.getElementById('onboarding').classList.remove('show');
+  document.getElementById('app').classList.add('show');
+  renderTabs();
+  loadDay();
+}
+
+function openSettings() {
+  document.getElementById('settingsKey').value = apiKey;
+  document.getElementById('settingsModal').classList.add('open');
+}
+
+function closeSettings(e) {
+  if (e.target === document.getElementById('settingsModal'))
+    document.getElementById('settingsModal').classList.remove('open');
+}
+
+function saveSettings() {
+  const k = document.getElementById('settingsKey').value.trim();
+  if (k) apiKey = k;
+  document.getElementById('settingsModal').classList.remove('open');
+}
+
+function clearAll() {
+  apiKey = '';
+  Object.keys(cache).forEach(k => delete cache[k]);
+  Object.keys(selectedOpts).forEach(k => delete selectedOpts[k]);
+  document.getElementById('settingsModal').classList.remove('open');
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('obKeyInput').value = '';
+  document.getElementById('onboarding').classList.add('show');
+}
+
+function getWeekDates(offset) {
+  const base = new Date(today);
+  base.setDate(today.getDate() - today.getDay() + offset * 7);
+  return Array.from({length:7}, (_,i) => {
+    const d = new Date(base); d.setDate(base.getDate()+i); return d;
+  });
+}
+
+function renderTabs() {
+  const dates = getWeekDates(weekOffset);
+  document.getElementById('dayTabs').innerHTML = dates.map((d,i) => {
+    const isToday = weekOffset===0 && i===today.getDay();
+    const isSel = i===selectedDay;
+    const hasData = MEALS.some(m => cache[getKey(weekOffset,i,m)]);
+    return `<button class="day-tab${isSel?' active':''}${isToday?' today':''}" onclick="selectDay(${i})">
+      <span class="d-name">${DAYS[i]}</span>
+      <span class="d-num">${d.getDate()}</span>
+      ${hasData ? '<span class="day-dot"></span>' : '<span class="day-dot-empty"></span>'}
+    </button>`;
+  }).join('');
+  const wk = dates[0], wkEnd = dates[6];
+  document.getElementById('weekLabel').textContent = weekOffset===0 ? 'This week' :
+    `${wk.getDate()} ${wk.toLocaleString('en',{month:'short'})} – ${wkEnd.getDate()} ${wkEnd.toLocaleString('en',{month:'short'})}`;
+}
+
+function selectDay(i) { selectedDay=i; renderTabs(); loadDay(); }
+function changeWeek(dir) { weekOffset+=dir; selectedDay=dir>0?0:6; renderTabs(); loadDay(); }
+
+function showSkeleton(meal) {
+  document.getElementById(`slot-${meal}`).innerHTML = `
+    <div class="skeleton">
+      <div class="sk-emoji"></div>
+      <div class="sk-lines"><div class="sk-line w80"></div><div class="sk-line w50"></div></div>
+    </div>`;
+}
+
+async function loadDay() {
+  MEALS.forEach(showSkeleton);
+  updateStats();
+  await Promise.all(MEALS.map(meal => fetchOptions(meal, false)));
+}
+
+async function fetchOptions(meal, refresh) {
+  const key = getKey(weekOffset, selectedDay, meal);
+  if (!refresh && cache[key]) { renderMealOptions(meal); return; }
+  showSkeleton(meal);
+  try {
+    const existing = (cache[key]||[]).map(m=>m.name).join(', ');
+    const avoidStr = existing ? `Do NOT suggest these again: ${existing}.` : '';
+    const headers = { 'Content-Type': 'application/json' };
+    if (apiKey) {
+      headers['x-api-key'] = apiKey;
+      headers['anthropic-version'] = '2023-06-01';
+      headers['anthropic-dangerous-direct-browser-access'] = 'true';
+    }
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `Give me 3 different healthy ${meal} options. ${avoidStr}
+Reply ONLY with a JSON array of 3 objects, no markdown, no extra text:
+[{"name":"...","emoji":"...","calories":number,"protein":number,"prepTime":number,"ingredients":["..."],"steps":["..."]}]`
+        }]
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content.find(b=>b.type==='text')?.text || '[]';
+    const clean = text.replace(/```json|```/g,'').trim();
+    const options = JSON.parse(clean);
+    cache[key] = options;
+    if (selectedOpts[key] === undefined) selectedOpts[key] = 0;
+    renderMealOptions(meal);
+    updateStats();
+  } catch(e) {
+    document.getElementById(`slot-${meal}`).innerHTML =
+      `<div style="padding:14px;color:#888;font-size:13px;text-align:center">
+        Error: ${e.message||'inténtalo de nuevo'}
+        <button onclick="fetchOptions('${meal}',true)" style="display:block;margin:8px auto 0;color:#3b6d11;background:none;border:none;cursor:pointer;font-weight:600">Reintentar</button>
+      </div>`;
+  }
+}
+
+function renderMealOptions(meal) {
+  const key = getKey(weekOffset, selectedDay, meal);
+  const options = cache[key];
+  if (!options || !options.length) return;
+  const sel = selectedOpts[key] || 0;
+  const cards = options.map((opt,i) => `
+    <div class="option-card${i===sel?' selected':''}">
+      <div class="option-inner">
+        <div class="meal-emoji">${opt.emoji}</div>
+        <div class="meal-info">
+          <div class="meal-name">${opt.name}</div>
+          <div class="meal-meta">${opt.calories} kcal · ${opt.protein}g prot · ${opt.prepTime}min</div>
+        </div>
+        <div class="option-actions">
+          <button class="icon-btn" onclick="showRecipe('${key}',${i})"><i class="ti ti-book"></i></button>
+          <button class="select-btn" onclick="selectOption('${meal}',${i})">${i===sel?'✓ Sel':'Select'}</button>
+        </div>
+      </div>
+    </div>`).join('');
+  const dots = options.map((_,i) => `<div class="dot-ind${i===sel?' active':''}"></div>`).join('');
+  document.getElementById(`slot-${meal}`).innerHTML = `
+    <div class="refresh-row">
+      <button class="refresh-btn" onclick="fetchOptions('${meal}',true)">
+        <i class="ti ti-refresh"></i> Nuevas opciones
+      </button>
+    </div>
+    <div class="options-scroll" id="scroll-${meal}">${cards}</div>
+    <div class="dots" id="dots-${meal}">${dots}</div>`;
+  const scroller = document.getElementById(`scroll-${meal}`);
+  scroller.addEventListener('scroll', () => {
+    const w = (scroller.children[0]?.offsetWidth||0)+10;
+    if (!w) return;
+    const idx = Math.round(scroller.scrollLeft/w);
+    const dotsEl = document.getElementById(`dots-${meal}`).children;
+    for (let d of dotsEl) d.classList.remove('active');
+    if (dotsEl[idx]) dotsEl[idx].classList.add('active');
+  });
+}
+
+function selectOption(meal, idx) {
+  const key = getKey(weekOffset, selectedDay, meal);
+  selectedOpts[key] = idx;
+  renderMealOptions(meal);
+  updateStats();
+}
+
+function updateStats() {
+  let totalCal=0, totalProt=0, filled=0;
+  MEALS.forEach(meal => {
+    const key = getKey(weekOffset, selectedDay, meal);
+    const opts = cache[key];
+    if (opts && opts.length) {
+      const sel = selectedOpts[key]||0;
+      totalCal += opts[sel].calories;
+      totalProt += opts[sel].protein;
+      filled++;
+    }
+  });
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-card"><div class="s-val">${filled?totalCal:'—'}</div><div class="s-lbl">kcal</div></div>
+    <div class="stat-card"><div class="s-val">${filled?totalProt+'g':'—'}</div><div class="s-lbl">protein</div></div>
+    <div class="stat-card"><div class="s-val">${filled}/3</div><div class="s-lbl">meals</div></div>`;
+}
+
+function showRecipe(key, idx) {
+  const d = cache[key]?.[idx]; if (!d) return;
+  document.getElementById('modalTitle').textContent = d.emoji+' '+d.name;
+  document.getElementById('modalMeta').textContent = `${d.calories} kcal · ${d.protein}g protein · ${d.prepTime} min prep`;
+  document.getElementById('modalIngredients').innerHTML = d.ingredients.map(i=>`<li>${i}</li>`).join('');
+  document.getElementById('modalSteps').innerHTML = d.steps.map(s=>`<li>${s}</li>`).join('');
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target===document.getElementById('modalOverlay'))
+    document.getElementById('modalOverlay').classList.remove('open');
+}
+
+// Init — detect if running inside Claude.ai
+const isClaudeAi = window.location.hostname.includes('claude.ai') || window.location.hostname === 'localhost' || window.location.protocol === 'blob:' || !window.location.hostname;
+if (isClaudeAi) {
+  skipOnboarding();
+} else {
+  document.getElementById('onboarding').classList.add('show');
+}
+</script>
+</body>
+</html>
